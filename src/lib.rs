@@ -5,7 +5,7 @@ use std::{ thread, time };
 pub struct Key {
     pin: usize, // GPIO pin that key is connected to
     // led_index: usize, // Led support to be added in the future
-    function: Option<dyn Fn(bool)> // The function called on the key on a state change
+    function: Option<Box<dyn Fn(bool)>> // The function called on the key on a state change
 }
 
 enum GpioV2Pins {
@@ -49,7 +49,7 @@ impl Keybow {
         Ok(s)
     }
 
-    pub fn add_key(&mut self, index: usize, /*led_index: usize,*/ function: Option<dyn Fn(bool)>) {
+    pub fn add_key(&mut self, index: usize, /*led_index: usize,*/ function: Option<Box<dyn Fn(bool)>>) {
         // adjust key indexes to pins
         if self.mini {
             let pin: usize = match index {
@@ -96,8 +96,10 @@ impl Keybow {
         for (i, key) in self.mapping_table.iter().enumerate() {
             let state = self._gpio.read_level(key.pin) == 0;
             if state != self.states[i] {
-                key.function(state);
-                self.states[i] = state;
+                if let Some(function) = key.function {
+                    function(state);
+                    self.states[i] = state;
+                }
             }
         }
     }
