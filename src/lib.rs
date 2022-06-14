@@ -33,7 +33,7 @@ impl Keybow {
             mapping_table: Vec::with_capacity(3),
             states: Vec::with_capacity(3),
             mini: false,
-            _gpio: bcm283::Gpio::new()
+            _gpio: bcm283::Gpio::new()?
         };
         Ok(s)
     }
@@ -44,33 +44,34 @@ impl Keybow {
             mapping_table: Vec::with_capacity(3),
             states: Vec::with_capacity(3),
             mini: true,
-            _gpio: bcm283::Gpio::new()
+            _gpio: bcm283::Gpio::new()?
         };
         Ok(s)
     }
 
     pub fn add_key(&mut self, index: usize, /*led_index: usize,*/ function: Option<Box<dyn Fn(bool)>>) {
         // adjust key indexes to pins
+        let mut pin: usize;
         if self.mini {
-            let pin: usize = match index {
-                0 => GpioV2Pins::P1_38,
-                1 => GpioV2Pins::P1_11,
-                2 => GpioV2Pins::P1_18
+            pin = match index {
+                0 => GpioV2Pins::P1_38 as usize,
+                1 => GpioV2Pins::P1_11 as usize,
+                2 => GpioV2Pins::P1_18 as usize
             };
         } else {
-            let pin: usize = match index {
-                0  => GpioV2Pins::P1_38,
-                1  => GpioV2Pins::P1_31,
-                2  => GpioV2Pins::P1_15,
-                3  => GpioV2Pins::P1_11,
-                4  => GpioV2Pins::P1_36,
-                5  => GpioV2Pins::P1_32,
-                6  => GpioV2Pins::P1_18,
-                7  => GpioV2Pins::P1_13,
-                8  => GpioV2Pins::P1_37,
-                9  => GpioV2Pins::P1_33,
-                10 => GpioV2Pins::P1_29,
-                11 => GpioV2Pins::P1_16
+            pin = match index {
+                0  => GpioV2Pins::P1_38 as usize,
+                1  => GpioV2Pins::P1_31 as usize,
+                2  => GpioV2Pins::P1_15 as usize,
+                3  => GpioV2Pins::P1_11 as usize,
+                4  => GpioV2Pins::P1_36 as usize,
+                5  => GpioV2Pins::P1_32 as usize,
+                6  => GpioV2Pins::P1_18 as usize,
+                7  => GpioV2Pins::P1_13 as usize,
+                8  => GpioV2Pins::P1_37 as usize,
+                9  => GpioV2Pins::P1_33 as usize,
+                10 => GpioV2Pins::P1_29 as usize,
+                11 => GpioV2Pins::P1_16 as usize
             };
         }
         self.mapping_table.push(Key {
@@ -84,9 +85,9 @@ impl Keybow {
     fn init_gpio(&mut self) {
         let mut config = bcm283::GpioConfig::new();
         let mut config_pull = bcm283::GpioPullConfig::new();
-        for Key { pin, led_index: _, function: _ } in self.mapping_table.iter() {
-            config.set_function(pin, bcm283::PinFunction::Input);
-            config_pull.set_pull_mode(pin, bcm283::PullMode::PullUp);
+        for Key { pin, /*led_index: _,*/ function: _ } in self.mapping_table.iter() {
+            config.set_function(*pin, bcm283::PinFunction::Input);
+            config_pull.set_pull_mode(*pin, bcm283::PullMode::PullUp);
         }
         config.apply(&mut self._gpio);
         unsafe { config_pull.apply(&mut self._gpio); }
@@ -94,7 +95,7 @@ impl Keybow {
 
     fn update_keys(&mut self) {
         for (i, key) in self.mapping_table.iter().enumerate() {
-            let state = self._gpio.read_level(key.pin) == 0;
+            let state = self._gpio.read_level(key.pin);
             if state != self.states[i] {
                 if let Some(function) = key.function {
                     function(state);
