@@ -49,14 +49,15 @@ impl Keybow {
         Ok(s)
     }
 
-    pub fn add_key(&mut self, index: usize, /*led_index: usize,*/ function: Option<Box<dyn Fn(bool)>>) {
+    pub fn add_key(&mut self, index: usize, /*led_index: usize,*/ function: Option<Box<dyn Fn(bool)>>) -> Result<(), std::io::Error>{
         // adjust key indexes to pins
         let mut pin: usize;
         if self.mini {
             pin = match index {
                 0 => GpioV2Pins::P1_38 as usize,
                 1 => GpioV2Pins::P1_11 as usize,
-                2 => GpioV2Pins::P1_18 as usize
+                2 => GpioV2Pins::P1_18 as usize,
+                _ => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid key index for device (Keybow mini)"))
             };
         } else {
             pin = match index {
@@ -71,7 +72,8 @@ impl Keybow {
                 8  => GpioV2Pins::P1_37 as usize,
                 9  => GpioV2Pins::P1_33 as usize,
                 10 => GpioV2Pins::P1_29 as usize,
-                11 => GpioV2Pins::P1_16 as usize
+                11 => GpioV2Pins::P1_16 as usize,
+                _ => return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid key index for device (Keybow mini)"))
             };
         }
         self.mapping_table.push(Key {
@@ -80,6 +82,7 @@ impl Keybow {
             function
         });
         self.states.push(false);
+        Ok(())
     }
 
     fn init_gpio(&mut self) {
@@ -97,7 +100,7 @@ impl Keybow {
         for (i, key) in self.mapping_table.iter().enumerate() {
             let state = self._gpio.read_level(key.pin);
             if state != self.states[i] {
-                if let Some(function) = key.function {
+                if let Some(function) = &key.function {
                     function(state);
                     self.states[i] = state;
                 }
