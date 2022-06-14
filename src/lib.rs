@@ -5,7 +5,7 @@ use std::{ thread, time };
 pub struct Key {
     pin: usize, // GPIO pin that key is connected to
     // led_index: usize, // Led support to be added in the future
-    function: Option<Fn(bool)> // The function called on the key on a state change
+    function: Option<dyn Fn(bool)> // The function called on the key on a state change
 }
 
 enum GpioV2Pins {
@@ -28,24 +28,28 @@ pub struct Keybow {
 
 impl Keybow {
     pub fn new() -> Result<Self, bcm283::Error> {
-        Ok(Self {
-            mapping_table: Vec::with_capacity(12),
-            states: Vec::with_capacity(12),
+        bcm283::check_bcm283x_gpio()?;
+        let mut s = Self {
+            mapping_table: Vec::with_capacity(3),
+            states: Vec::with_capacity(3),
             mini: false,
-            _gpio: Self::init_gpio()?
-        })
+            _gpio: bcm283::Gpio::new()
+        };
+        Ok(s)
     }
 
     pub fn new_mini() -> Result<Self, bcm283::Error> {
-        Ok(Self {
+        bcm283::check_bcm283x_gpio()?;
+        let mut s = Self {
             mapping_table: Vec::with_capacity(3),
             states: Vec::with_capacity(3),
             mini: true,
-            _gpio: Self::init_gpio()?
-        })
+            _gpio: bcm283::Gpio::new()
+        };
+        Ok(s)
     }
 
-    pub fn add_key(&mut self, index: usize, /*led_index: usize,*/ function: Option<Fn(bool)>) {
+    pub fn add_key(&mut self, index: usize, /*led_index: usize,*/ function: Option<dyn Fn(bool)>) {
         // adjust key indexes to pins
         if self.mini {
             let pin: usize = match index {
@@ -77,18 +81,15 @@ impl Keybow {
         self.states.push(false);
     }
 
-    fn init_gpio() -> Result<bcm283::Gpio, bcm283::Error> {
-        bcm283::check_bcm283x_gpio()?;
-        let mut gpio = bcm283::Gpio::new();
+    fn init_gpio(&mut self) {
         let mut config = bcm283::GpioConfig::new();
         let mut config_pull = bcm283::GpioPullConfig::new();
-        for Key { pin, led_index: _, function: _ } in MAPPING_TABLE.iter() {
+        for Key { pin, led_index: _, function: _ } in self.mapping_table.iter() {
             config.set_function(pin, bcm283::PinFunction::Input);
             config_pull.set_pull_mode(pin, bcm283::PullMode::PullUp);
         }
-        config.apply(&mut gpio);
-        unsafe { config_pull.apply(&mut gpio); }
-        Ok(gpio)
+        config.apply(&mut self._gpio);
+        unsafe { config_pull.apply(&mut self._gpio); }
     }
 
     fn update_keys(&mut self) {
