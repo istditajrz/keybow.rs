@@ -117,8 +117,8 @@ impl Keybow {
 }
 
 #[test]
-fn full() -> Result<!, std::io::Error> {
-    let mut k = keybow::Keybow::new_mini().unwrap();
+fn full() -> Result<(), std::io::Error> {
+    let mut k = crate::Keybow::new_mini().unwrap();
     k.add_key(0, |state: bool| println!("Prev Key: {}", state));
     k.add_key(1, |state: bool| println!("Toggle Key: {}", state));
     k.add_key(2, |state: bool| println!("Next Key: {}", state));
