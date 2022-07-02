@@ -79,7 +79,7 @@ impl Keybow {
         Ok(())
     }
 
-    fn update_keys(&mut self) -> Result<(), std::io::Error> {
+    pub fn update_keys(&mut self) -> Result<(), std::io::Error> {
         for (index, (line, function)) in self.mapping_table.iter().enumerate() {
             let handle = match line.request(gpio_cdev::LineRequestFlags::INPUT, 0, &format!("Keybow{}", if self.mini { " mini" } else { "" })) {
                 Ok(h)  => h,
