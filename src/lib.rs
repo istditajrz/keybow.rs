@@ -100,15 +100,10 @@ impl Keybow {
     }
 }
 
-// #[test]
-// fn full() -> Result<(), std::io::Error> {
-//     let mut k = crate::Keybow::new_mini();
-//     let dummy = DummyPin::new(|| true);
-//     k.add_key(
-//         Key {
-//             pin: Box::new(dummy),
-//             function: Some(Box::new(|state: bool| println!("Prev Key: {}", state)))
-//         }
-//     );
-//     k.update_keys().unwrap();
-// }
+#[test]
+fn full() {
+    let mut k = crate::Keybow::new_mini("/dev/gpiochip0").unwrap();
+    let cb = |b| println!("{}", b);
+    k.add_key(0, Box::new(cb)).unwrap();
+    k.update_keys().unwrap();
+}
